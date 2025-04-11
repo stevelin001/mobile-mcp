@@ -169,23 +169,32 @@ export class AndroidRobot implements Robot {
 		
 		// 读取文件内容并处理
 		const rawContent = this.adb("shell", "cat", tempFile).toString();
-		const xmlContent = rawContent.startsWith("<?xml") 
-			? rawContent 
-			: rawContent.includes("<?xml") 
-				? "<?xml" + rawContent.split("<?xml")[1]
-				: rawContent;
 		
-		const parser = new xml.XMLParser({
-			ignoreAttributes: false,
-			attributeNamePrefix: ""
-		});
+		// 提取实际的XML内容
+		const xmlStartIndex = rawContent.indexOf("<?xml");
+		const xmlEndIndex = rawContent.lastIndexOf("</hierarchy>");
+		
+		if (xmlStartIndex === -1 || xmlEndIndex === -1) {
+			throw new Error("Invalid XML content in dump file");
+		}
+		
+		// 提取纯XML内容（包含结束标签）
+		const xmlContent = rawContent.substring(xmlStartIndex, xmlEndIndex + "</hierarchy>".length);
+		
+		try {
+			const parser = new xml.XMLParser({
+				ignoreAttributes: false,
+				attributeNamePrefix: ""
+			});
 
-		const parsedXml = parser.parse(xmlContent) as UiAutomatorXml;
-		const hierarchy = parsedXml.hierarchy;
-
-		const screenSize = await this.getScreenSize();
-		const elements = this.collectElements(hierarchy.node, screenSize);
-		return elements;
+			const parsedXml = parser.parse(xmlContent) as UiAutomatorXml;
+			const screenSize = await this.getScreenSize();
+			const elements = this.collectElements(parsedXml.hierarchy.node, screenSize);
+			return elements;
+		} catch (error: unknown) {
+			console.error("XML parsing error:", error);
+			throw new Error(`Failed to parse UI hierarchy: ${error instanceof Error ? error.message : String(error)}`);
+		}
 	}
 
 	public async terminateApp(packageName: string): Promise<void> {
