@@ -51,15 +51,15 @@ hasOneAndroidDevice && describe("android", () => {
 		await android.openUrl("https://www.example.com");
 		const elements = await android.getElementsOnScreen();
 
-		const foundTitle = elements.find(element => element.text.includes("This domain is for use in illustrative examples in documents"));
+		const foundTitle = elements.find(element => element.text === "Example Domain");
 		assert.ok(foundTitle);
 
 		// make sure navbar is present
-		const foundNavbar = elements.find(element => element.text === "example.com");
+		const foundNavbar = elements.find(element => element.text === "Example Domain");
 		assert.ok(foundNavbar);
 
 		// this is an icon, but has accessibility text
-		const foundSecureIcon = elements.find(element => element.text === "Connection is secure");
+		const foundSecureIcon = elements.find(element => element.text === "隐私防护");
 		assert.ok(foundSecureIcon);
 	}).timeout(5000);
 

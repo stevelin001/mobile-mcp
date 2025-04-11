@@ -163,14 +163,24 @@ export class AndroidRobot implements Robot {
 	}
 
 	public async getElementsOnScreen(): Promise<any[]> {
-		const dump = this.adb("exec-out", "uiautomator", "dump", "/dev/tty");
-
+		// 先保存到临时文件
+		const tempFile = "/sdcard/window_dump.xml";
+		this.adb("shell", "uiautomator", "dump", tempFile);
+		
+		// 读取文件内容并处理
+		const rawContent = this.adb("shell", "cat", tempFile).toString();
+		const xmlContent = rawContent.startsWith("<?xml") 
+			? rawContent 
+			: rawContent.includes("<?xml") 
+				? "<?xml" + rawContent.split("<?xml")[1]
+				: rawContent;
+		
 		const parser = new xml.XMLParser({
 			ignoreAttributes: false,
 			attributeNamePrefix: ""
 		});
 
-		const parsedXml = parser.parse(dump) as UiAutomatorXml;
+		const parsedXml = parser.parse(xmlContent) as UiAutomatorXml;
 		const hierarchy = parsedXml.hierarchy;
 
 		const screenSize = await this.getScreenSize();
